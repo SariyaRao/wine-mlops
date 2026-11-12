@@ -1,0 +1,14 @@
+prepare:
+  test_size: 0.2
+  random_state: 42
+
+train:
+  n_estimators: 200
+  max_depth: 6
+  min_samples_split: 2
+  random_state: 42
+
+mlflow:
+  experiment_name: wine-classifier
+  register_model: false          # true => also add the model to the MLflow Model Registry
+  registered_model_name: wine-classifier

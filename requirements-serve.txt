@@ -1,0 +1,7 @@
+# Slim set for the Docker image. scikit-learn MUST match requirements.txt
+# (a joblib model is only guaranteed to load with the same version).
+numpy==1.26.4
+pandas==2.2.3
+scikit-learn==1.5.2
+fastapi==0.115.4
+uvicorn[standard]==0.32.0

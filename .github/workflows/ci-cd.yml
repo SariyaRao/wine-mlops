@@ -1,0 +1,91 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+  IMAGE_NAME: ghcr.io/${{ github.repository }}/wine-api
+
+jobs:
+  # 1) Fast checks: lint + API unit tests (no AWS needed)
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: ruff check .
+      - run: pytest -q
+
+  # 2) Reproduce the pipeline with data pulled from S3 and gate on quality
+  pipeline:
+    needs: test
+    runs-on: ubuntu-latest
+    # Secrets are not available to PRs from forks.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.fork == false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Pull data/model from S3 (DVC)
+        run: dvc pull
+      - name: Reproduce pipeline (only re-runs stages whose inputs changed)
+        run: dvc repro
+      - name: Quality gate
+        run: python scripts/check_metrics.py 0.90
+      - name: Show metrics (diff vs. main)
+        run: |
+          dvc metrics show
+          git fetch origin main --depth=1 || true
+          dvc metrics diff origin/main || true
+      - name: Push new artifacts to S3 (main only)
+        if: github.ref == 'refs/heads/main'
+        run: dvc push
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: |
+            metrics/scores.json
+            reports/confusion_matrix.png
+            mlflow.db
+
+  # 3) CD: build image with the exact DVC-versioned model and publish it
+  build-and-push:
+    needs: pipeline
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install "dvc[s3]==3.56.0"
+      - name: Fetch only the model files
+        run: dvc pull model/model.joblib model/metadata.json
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}

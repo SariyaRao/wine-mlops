@@ -1,0 +1,34 @@
+stages:
+  prepare:
+    cmd: python -m src.prepare
+    deps:
+      - src/prepare.py
+      - data/raw/wine.csv        # versioned with `dvc add` (see data/raw/wine.csv.dvc)
+    params:
+      - prepare
+    outs:
+      - data/processed
+
+  train:
+    cmd: python -m src.train
+    deps:
+      - src/train.py
+      - data/processed/train.csv
+    params:
+      - train
+    outs:
+      - model/model.joblib
+      - model/metadata.json
+
+  evaluate:
+    cmd: python -m src.evaluate
+    deps:
+      - src/evaluate.py
+      - model/model.joblib
+      - model/metadata.json
+      - data/processed/test.csv
+    metrics:
+      - metrics/scores.json:
+          cache: false           # small file, keep it in Git so `dvc metrics diff` works
+    outs:
+      - reports/confusion_matrix.png
