@@ -44,6 +44,7 @@ def main() -> None:
         mlflow.sklearn.log_model(
             model,
             artifact_path="model",
+            serialization_format="cloudpickle",
             signature=infer_signature(X, model.predict(X)),
             input_example=X.head(3),
             registered_model_name=mlflow_params["registered_model_name"] if register else None,
