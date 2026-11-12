@@ -1,0 +1,79 @@
+schema: '2.0'
+stages:
+  prepare:
+    cmd: python -m src.prepare
+    deps:
+    - path: data/raw/wine.csv
+      hash: md5
+      md5: 46711f1644005f2daa73ae46a9bc0ec7
+      size: 12423
+    - path: src/prepare.py
+      hash: md5
+      md5: 3eb259fe95797805547d639c395623ac
+      size: 722
+    params:
+      params.yaml:
+        prepare:
+          test_size: 0.2
+          random_state: 42
+    outs:
+    - path: data/processed
+      hash: md5
+      md5: ab97a319eb3f2cbc72c7bd5ff2da5769.dir
+      size: 12584
+      nfiles: 2
+  train:
+    cmd: python -m src.train
+    deps:
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 6f637bf24c7bc0594af2627d33bc015b
+      size: 9949
+    - path: src/train.py
+      hash: md5
+      md5: b7947bb0058eec8e96e0230ce4596fc8
+      size: 2241
+    params:
+      params.yaml:
+        train:
+          n_estimators: 200
+          max_depth: 6
+          min_samples_split: 2
+          random_state: 42
+    outs:
+    - path: model/metadata.json
+      hash: md5
+      md5: b19f627fe69d0c37b11550e798fb622e
+      size: 521
+    - path: model/model.joblib
+      hash: md5
+      md5: 662bc8180dc23570c235b3a7ea2bf2f6
+      size: 425441
+  evaluate:
+    cmd: python -m src.evaluate
+    deps:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: 47960dadf36279b07c9a3e45d27c0c71
+      size: 2635
+    - path: model/metadata.json
+      hash: md5
+      md5: b19f627fe69d0c37b11550e798fb622e
+      size: 521
+    - path: model/model.joblib
+      hash: md5
+      md5: 662bc8180dc23570c235b3a7ea2bf2f6
+      size: 425441
+    - path: src/evaluate.py
+      hash: md5
+      md5: 1119185f1ca1835d44c1d28a20227e56
+      size: 1679
+    outs:
+    - path: metrics/scores.json
+      hash: md5
+      md5: 3538d6ab66fc9e426fa97a2fb34ab172
+      size: 94
+    - path: reports/confusion_matrix.png
+      hash: md5
+      md5: 9e5d2c84e35546a6e3ada6f892c6c928
+      size: 19395
