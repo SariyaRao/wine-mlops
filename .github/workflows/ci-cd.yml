@@ -19,7 +19,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.14"
+          python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
       - run: ruff check .
@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.14"
+          python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
       - name: Pull data/model from S3 (DVC)
@@ -67,7 +67,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.14"
+          python-version: "3.12"
       - run: pip install "dvc[s3]==3.67.1"
       - name: Fetch only the model files
         run: dvc pull model/model.joblib model/metadata.json
