@@ -26,13 +26,11 @@ jobs:
       - run: pip install -r requirements.txt
       - run: ruff check .
       - run: PYTHONPATH=. pytest -q
-
-      
   # 2) Reproduce the pipeline with data pulled from S3 and gate on quality
   pipeline:
     needs: test
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' || github.event.pull_request.head.repo.fork == false
+    if: ${{ github.event_name == 'push' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
