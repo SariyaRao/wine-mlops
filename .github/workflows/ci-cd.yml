@@ -13,7 +13,7 @@ env:
 
 jobs:
   # 1) Fast checks: lint + API unit tests (no AWS needed)
-   test:
+  test:
     runs-on: ubuntu-latest
     env:
       PYTHONPATH: .
@@ -25,12 +25,13 @@ jobs:
           cache: pip
       - run: pip install -r requirements.txt
       - run: ruff check .
-      - run: PYTHONPATH=. pytest -q
+      - run: pytest -q
+
   # 2) Reproduce the pipeline with data pulled from S3 and gate on quality
   pipeline:
     needs: test
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'push' }}
+    if: github.event_name == 'push'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -64,7 +65,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
