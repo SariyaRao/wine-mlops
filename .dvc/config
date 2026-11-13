@@ -1,5 +1,5 @@
 [core]
     remote = storage
 ['remote "storage"']
-    url = s3://BUCKET-NAME/dvc-store
+    url = s3://sariya-mlops-2026/dvc-store
     region = us-east-1
