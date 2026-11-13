@@ -1,4 +1,4 @@
-"""Stage 3: evaluate on the held-out test set and log to the SAME MLflow run."""
+"""Stage 3: evaluate on the held-out test set and log to MLflow."""
 import json
 import os
 from pathlib import Path
@@ -10,6 +10,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import mlflow  # noqa: E402
 import pandas as pd  # noqa: E402
+import yaml  # noqa: E402
+from mlflow.exceptions import MlflowException  # noqa: E402
 from sklearn.metrics import (  # noqa: E402
     ConfusionMatrixDisplay,
     accuracy_score,
@@ -19,8 +21,23 @@ from sklearn.metrics import (  # noqa: E402
 )
 
 
+def start_evaluation_run(run_id: str, experiment_name: str):
+    """Resume the training run if it exists, otherwise start a new one.
+
+    The MLflow database is local (not in Git), so on a fresh machine such as
+    the CI runner the training run does not exist and we log to a new run.
+    """
+    try:
+        mlflow.get_run(run_id)
+        return mlflow.start_run(run_id=run_id)
+    except MlflowException:
+        mlflow.set_experiment(experiment_name)
+        return mlflow.start_run(run_name="evaluate-only")
+
+
 def main() -> None:
     meta = json.loads(Path("model/metadata.json").read_text())
+    params = yaml.safe_load(Path("params.yaml").read_text())
     model = joblib.load("model/model.joblib")
 
     test = pd.read_csv("data/processed/test.csv")
@@ -43,7 +60,7 @@ def main() -> None:
     plt.savefig("reports/confusion_matrix.png", dpi=120, bbox_inches="tight")
 
     mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db"))
-    with mlflow.start_run(run_id=meta["run_id"]):  # resume the training run
+    with start_evaluation_run(meta["run_id"], params["mlflow"]["experiment_name"]):
         mlflow.log_metrics({f"test_{k}": v for k, v in scores.items()})
         mlflow.log_artifact("reports/confusion_matrix.png")
 
