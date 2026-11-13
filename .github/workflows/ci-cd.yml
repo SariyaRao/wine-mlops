@@ -70,7 +70,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install "dvc[s3]==3.67.1"
+      - run: pip install "dvc[s3]==3.67.1" "pathspec<1.0"
       - name: Fetch only the model files
         run: dvc pull model/model.joblib model/metadata.json
       - name: Lowercase image name
